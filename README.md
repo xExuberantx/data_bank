@@ -17,14 +17,15 @@ FROM data_bank.customer_nodes;
 ```
 SELECT
     region_name,
-    COUNT(node_id) AS nodes
+    COUNT(DISTINCT node_id) AS nodes
 FROM data_bank.customer_nodes AS cn
 LEFT JOIN data_bank.regions AS rg
 USING(region_id)
 GROUP BY region_name
 ORDER BY nodes DESC;
 ```
-![image](https://github.com/xExuberantx/data_bank/assets/131042937/dc5a2c8c-2e2a-455b-adba-e4f3b4211772)
+![image](https://github.com/xExuberantx/data_bank/assets/131042937/5411a803-9bbd-4088-87bb-53a644a56ea8)
+
 
 ### 3. How many customers are allocated to each region?
 ```
