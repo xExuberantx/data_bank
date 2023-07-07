@@ -9421,7 +9421,7 @@ FROM data_bank.customer_nodes;
 
 SELECT
     region_name,
-    COUNT(node_id) AS nodes
+    COUNT(DISTINCT node_id) AS nodes
 FROM data_bank.customer_nodes AS cn
 LEFT JOIN data_bank.regions AS rg
 USING(region_id)
