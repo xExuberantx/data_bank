@@ -9413,9 +9413,31 @@ VALUES
 
 -- 1. How many unique nodes are there on the Data Bank system?
 
+SELECT
+    COUNT(DISTINCT node_id)
+FROM data_bank.customer_nodes;
+
 -- 2. What is the number of nodes per region?
 
+SELECT
+    region_name,
+    COUNT(node_id) AS nodes
+FROM data_bank.customer_nodes AS cn
+LEFT JOIN data_bank.regions AS rg
+USING(region_id)
+GROUP BY region_name
+ORDER BY nodes DESC;
+
 -- 3. How many customers are allocated to each region?
+
+SELECT
+    region_name,
+    COUNT(DISTINCT customer_id) AS customers
+FROM data_bank.customer_nodes AS cn
+LEFT JOIN data_bank.regions AS rg
+USING(region_id)
+GROUP BY region_name
+ORDER BY customers DESC;
 
 -- 4. How many days on average are customers reallocated to a different node?
 
