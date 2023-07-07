@@ -5,11 +5,36 @@ Database schema can be found under https://8weeksqlchallenge.com/case-study-4/
 
 ![schema](https://github.com/xExuberantx/data_bank/assets/131042937/02398bcf-1cd6-4acd-bb78-0ab02faef4cd)
 
+### 1. How many unique nodes are there on the Data Bank system?
 ```
--- 1. How many unique nodes are there on the Data Bank system?
 SELECT
     COUNT(DISTINCT node_id)
 FROM data_bank.customer_nodes;
 ```
-count
-5
+![image](https://github.com/xExuberantx/data_bank/assets/131042937/7ab7a59c-c186-45ac-a347-e9e6d6afde87)
+
+### 2. What is the number of nodes per region?
+```
+SELECT
+    region_name,
+    COUNT(node_id) AS nodes
+FROM data_bank.customer_nodes AS cn
+LEFT JOIN data_bank.regions AS rg
+USING(region_id)
+GROUP BY region_name
+ORDER BY nodes DESC;
+```
+![image](https://github.com/xExuberantx/data_bank/assets/131042937/dc5a2c8c-2e2a-455b-adba-e4f3b4211772)
+
+### 3. How many customers are allocated to each region?
+```
+SELECT
+    region_name,
+    COUNT(DISTINCT customer_id) AS customers
+FROM data_bank.customer_nodes AS cn
+LEFT JOIN data_bank.regions AS rg
+USING(region_id)
+GROUP BY region_name
+ORDER BY customers DESC;
+```
+![image](https://github.com/xExuberantx/data_bank/assets/131042937/1d43a118-3b5a-4598-bf75-5bd054ca6f5d)
