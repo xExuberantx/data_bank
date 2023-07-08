@@ -226,3 +226,5 @@ SELECT
 ## C. Data Allocation Challenge
 
 ### Option 1: data is allocated based off the amount of money at the end of the previous month
+
+**Running customer balance column that includes the impact each transaction**
