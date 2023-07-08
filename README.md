@@ -5,6 +5,8 @@ Database schema can be found under https://8weeksqlchallenge.com/case-study-4/
 
 ![schema](https://github.com/xExuberantx/data_bank/assets/131042937/02398bcf-1cd6-4acd-bb78-0ab02faef4cd)
 
+## A. Customer Nodes Exploration
+
 ### 1. How many unique nodes are there on the Data Bank system?
 ```
 SELECT
@@ -61,3 +63,88 @@ USING(region_id)
 GROUP BY region_name
 ```
 ![image](https://github.com/xExuberantx/data_bank/assets/131042937/9d087ba2-61bc-4c06-9986-921f351032d9)
+
+## B. Customer Transactions
+
+### 1. What is the unique count and total amount for each transaction type?
+The 'unique count' seems a bit ambiguous as there are not transacion ids, but since it's supposed to be unique I counted uniqie customer_ids
+```
+SELECT
+    txn_type,
+    COUNT(DISTINCT customer_id),
+    SUM(txn_amount) as total_amount
+FROM data_bank.customer_transactions
+GROUP BY txn_type
+ORDER BY count DESC
+```
+![image](https://github.com/xExuberantx/data_bank/assets/131042937/7426085b-f6e7-4e15-8e5b-ab5ac30678e8)
+
+### 2. What is the average total historical deposit counts and amounts for all customers?
+```
+WITH cte as (
+    SELECT
+        customer_id,
+        COUNT(*),
+        ROUND(AVG(txn_amount), 2) as avg_am_per_cust
+    FROM data_bank.customer_transactions
+    WHERE txn_type = 'deposit'
+    GROUP BY customer_id)
+
+SELECT
+    ROUND(AVG(count)) as avg_cnt,
+    ROUND(AVG(avg_am_per_cust), 2) as avg_amount
+FROM cte
+```
+![image](https://github.com/xExuberantx/data_bank/assets/131042937/a3c84e73-1265-4d40-adc4-50ffa5018d49)
+
+### 3. For each month - how many Data Bank customers make more than 1 deposit and either 1 purchase or 1 withdrawal in a single month?
+Since the data is provided for ca. 4 months time we can simplify the query to just months
+```
+WITH deposits as (
+    SELECT
+        DATE_PART('month', txn_date) as month,
+        customer_id,
+        COUNT(customer_id) as depo_cnt
+    FROM data_bank.customer_transactions
+    WHERE txn_type = 'deposit'
+    GROUP BY month, customer_id
+    ORDER BY month DESC),
+    purchases as (
+    SELECT
+        DATE_PART('month', txn_date) as month,
+        customer_id,
+        COUNT(customer_id) as purch_cnt
+    FROM data_bank.customer_transactions
+    WHERE txn_type = 'purchase'
+    GROUP BY month, customer_id
+    ORDER BY month DESC
+    ),
+    withdrawals as (
+    SELECT
+        DATE_PART('month', txn_date) as month,
+        customer_id,
+        COUNT(customer_id) withd_cnt
+    FROM data_bank.customer_transactions
+    WHERE txn_type = 'withdrawal'
+    GROUP BY month, customer_id
+    ORDER BY month DESC
+    )
+SELECT
+    month,
+    COUNT(*) as cnt
+FROM deposits
+FULL JOIN purchases
+USING(month, customer_id)
+FULL JOIN withdrawals
+USING(month, customer_id)
+WHERE depo_cnt > 1
+  AND (purch_cnt = 1 OR withd_cnt = 1)
+GROUP BY month
+ORDER BY cnt DESC
+```
+![image](https://github.com/xExuberantx/data_bank/assets/131042937/a546e3d9-bfc5-43ea-b8fd-2d5fb28113a8)
+
+### 4. What is the closing balance for each customer at the end of the month?
+```
+```
+
