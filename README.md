@@ -145,6 +145,43 @@ ORDER BY cnt DESC
 ![image](https://github.com/xExuberantx/data_bank/assets/131042937/a546e3d9-bfc5-43ea-b8fd-2d5fb28113a8)
 
 ### 4. What is the closing balance for each customer at the end of the month?
+**Regarding each month individually**
 ```
+SELECT
+    customer_id,
+    DATE_PART('month', txn_date) as month,
+    SUM(
+        CASE WHEN txn_type = 'deposit' THEN txn_amount
+             ELSE -txn_amount END
+    ) as balance
+FROM data_bank.customer_transactions
+GROUP BY customer_id, month
+ORDER BY customer_id, month
+LIMIT 15
 ```
+![image](https://github.com/xExuberantx/data_bank/assets/131042937/6a85c8fc-ecad-425e-b5c9-51d6cff96b81)
+
+**Regarding previous month's balance**
+```
+WITH balances as (
+    SELECT
+        customer_id,
+        DATE_PART('month', txn_date) as month,
+        SUM(
+            CASE WHEN txn_type = 'deposit' THEN txn_amount
+                ELSE -txn_amount END
+        ) as balance
+    FROM data_bank.customer_transactions
+    GROUP BY customer_id, month
+    ORDER BY customer_id, month)
+
+SELECT
+    customer_id,
+    month,
+    SUM(balance) OVER (PARTITION BY customer_id ORDER BY month RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+FROM balances
+ORDER BY customer_id, month
+```
+![image](https://github.com/xExuberantx/data_bank/assets/131042937/af5aa2dd-b7f2-47de-b4e7-2b60a40acff4)
+
 
