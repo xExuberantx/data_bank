@@ -9460,15 +9460,135 @@ GROUP BY region_name
 -- B. Customer Transactions
 
 -- 1. What is the unique count and total amount for each transaction type?
-
+SELECT
+    txn_type,
+    COUNT(DISTINCT customer_id),
+    SUM(txn_amount) as total_amount
+FROM data_bank.customer_transactions
+GROUP BY txn_type
+ORDER BY count DESC
 
 -- 2. What is the average total historical deposit counts and amounts for all customers?
 
--- 3. For each month - how many Data Bank customers make more than 1 deposit and either 1 purchase or 1 withdrawal in a single month?
+WITH cte as (
+    SELECT
+        customer_id,
+        COUNT(*),
+        ROUND(AVG(txn_amount), 2) as avg_am_per_cust
+    FROM data_bank.customer_transactions
+    WHERE txn_type = 'deposit'
+    GROUP BY customer_id)
 
--- 4. What is the closing balance for each customer at the end of the month?
+SELECT
+    ROUND(AVG(count)) as avg_cnt,
+    ROUND(AVG(avg_am_per_cust), 2) as avg_amount
+FROM cte
+
+
+-- 3. For each month - how many Data Bank customers make more than 1 deposit and either 1 purchase or 1 withdrawal in a single month?
+WITH deposits as (
+    SELECT
+        DATE_PART('month', txn_date) as month,
+        customer_id,
+        COUNT(customer_id) as depo_cnt
+    FROM data_bank.customer_transactions
+    WHERE txn_type = 'deposit'
+    GROUP BY month, customer_id
+    ORDER BY month DESC),
+    purchases as (
+    SELECT
+        DATE_PART('month', txn_date) as month,
+        customer_id,
+        COUNT(customer_id) as purch_cnt
+    FROM data_bank.customer_transactions
+    WHERE txn_type = 'purchase'
+    GROUP BY month, customer_id
+    ORDER BY month DESC
+    ),
+    withdrawals as (
+    SELECT
+        DATE_PART('month', txn_date) as month,
+        customer_id,
+        COUNT(customer_id) withd_cnt
+    FROM data_bank.customer_transactions
+    WHERE txn_type = 'withdrawal'
+    GROUP BY month, customer_id
+    ORDER BY month DESC
+    )
+SELECT
+    month,
+    COUNT(*) as cnt
+FROM deposits
+FULL JOIN purchases
+USING(month, customer_id)
+FULL JOIN withdrawals
+USING(month, customer_id)
+WHERE depo_cnt > 1
+  AND (purch_cnt = 1 OR withd_cnt = 1)
+GROUP BY month
+ORDER BY cnt DESC
+
+-- 4a. What is the closing balance for each customer at the end of the month?
+SELECT
+    customer_id,
+    DATE_PART('month', txn_date) as month,
+    SUM(
+        CASE WHEN txn_type = 'deposit' THEN txn_amount
+             ELSE -txn_amount END
+    ) as balance
+FROM data_bank.customer_transactions
+GROUP BY customer_id, month
+ORDER BY customer_id, month
+LIMIT 15
+
+-- 4b. What is the closing balance for each customer at the end of the month?
+WITH balances as (
+    SELECT
+        customer_id,
+        DATE_PART('month', txn_date) as month,
+        SUM(
+            CASE WHEN txn_type = 'deposit' THEN txn_amount
+                ELSE -txn_amount END
+        ) as balance
+    FROM data_bank.customer_transactions
+    GROUP BY customer_id, month
+    ORDER BY customer_id, month)
+
+SELECT
+    customer_id,
+    month,
+    SUM(balance) OVER (PARTITION BY customer_id ORDER BY month RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as balance2
+FROM balances
+ORDER BY customer_id, month
+LIMIT 15
 
 -- 5. What is the percentage of customers who increase their closing balance by more than 5%?
+WITH balances as (
+    SELECT
+        customer_id,
+        DATE_PART('month', txn_date) as month,
+        SUM(
+            CASE WHEN txn_type = 'deposit' THEN txn_amount
+                ELSE -txn_amount END
+        ) as balance
+    FROM data_bank.customer_transactions
+    GROUP BY customer_id, month
+    ORDER BY customer_id, month),
+
+    balances2 as (
+    SELECT
+        customer_id,
+        month,
+        SUM(balance) OVER (PARTITION BY customer_id ORDER BY month RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as balance2
+    FROM balances
+    ORDER BY customer_id, month
+    )
+
+SELECT
+    customer_id,
+    balance2
+FROM balances2
+
 
 -- C. Data Allocation Challenge
 
