@@ -99,6 +99,7 @@ FROM cte
 
 ### 3. For each month - how many Data Bank customers make more than 1 deposit and either 1 purchase or 1 withdrawal in a single month?
 Since the data is provided for ca. 4 months time we can simplify the query to just months
+# SUM CASE/IF!!!!!!!
 ```
 WITH deposits as (
     SELECT
