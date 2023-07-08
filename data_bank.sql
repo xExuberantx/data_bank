@@ -9441,11 +9441,26 @@ ORDER BY customers DESC;
 
 -- 4. How many days on average are customers reallocated to a different node?
 
+SELECT
+    ROUND(AVG(end_date - start_date)) AS rel_time
+FROM data_bank.customer_nodes
+
 -- 5. What is the median, 80th and 95th percentile for this same reallocation days metric for each region?
+
+SELECT
+    region_name,
+    PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY end_date - start_date) as median,
+    PERCENTILE_DISC(0.8) WITHIN GROUP (ORDER BY end_date - start_date) as "80th",
+    PERCENTILE_DISC(0.95) WITHIN GROUP (ORDER BY end_date - start_date) as "95th"
+FROM data_bank.customer_nodes
+JOIN data_bank.regions 
+USING(region_id)
+GROUP BY region_name
 
 -- B. Customer Transactions
 
 -- 1. What is the unique count and total amount for each transaction type?
+
 
 -- 2. What is the average total historical deposit counts and amounts for all customers?
 
