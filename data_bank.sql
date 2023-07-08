@@ -9581,19 +9581,152 @@ WITH balances as (
         month,
         SUM(balance) OVER (PARTITION BY customer_id ORDER BY month RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as balance2
     FROM balances
-    ORDER BY customer_id, month
-    )
+    ORDER BY customer_id, month),
+
+    increase as (
+    SELECT
+        customer_id,
+        ((SELECT balance2 FROM balances2 as bal WHERE bal.customer_id=b.customer_id
+                                                AND month = (SELECT MAX(month) FROM balances2 as bal2 WHERE bal2.customer_id=bal.customer_id)) -
+        (SELECT balance2 FROM balances2 as bal WHERE bal.customer_id=b.customer_id
+                                                AND month = (SELECT MIN(month) FROM balances2 as bal2 WHERE bal2.customer_id=bal.customer_id)))*100/
+        (SELECT balance2 FROM balances2 as bal WHERE bal.customer_id=b.customer_id
+                                                AND month = (SELECT MIN(month) FROM balances2 as bal2 WHERE bal2.customer_id=bal.customer_id)) as perc_incr
+    FROM balances2 as b
+    GROUP BY customer_id)
 
 SELECT
-    customer_id,
-    balance2
-FROM balances2
-
+    ROUND((SELECT COUNT(*) FROM increase WHERE perc_incr > 5)::NUMERIC/(SELECT COUNT(*) FROM increase)*100, 2) as cust_with_incr
 
 -- C. Data Allocation Challenge
 
 -- Option 1: data is allocated based off the amount of money at the end of the previous month
 
+
+
+-- Running customer balance column that includes the impact each transaction
+SELECT
+    *,
+    SUM(txn_amount) OVER (PARTITION BY customer_id ORDER BY txn_date RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as balance_after_trans
+FROM data_bank.customer_transactions
+
+-- Customer balance at the end of each month
+WITH balances as (
+    SELECT
+        customer_id,
+        DATE_PART('month', txn_date) as month,
+        SUM(
+            CASE WHEN txn_type = 'deposit' THEN txn_amount
+                ELSE -txn_amount END
+        ) as balance
+    FROM data_bank.customer_transactions
+    GROUP BY customer_id, month
+    ORDER BY customer_id, month)
+
+SELECT
+    customer_id,
+    month,
+    SUM(balance) OVER (PARTITION BY customer_id ORDER BY month RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as balance2
+FROM balances
+ORDER BY customer_id, month
+
+-- Minimum, average and maximum values of the running balance for each customer
+WITH balances as (
+    SELECT
+        *,
+        SUM(txn_amount) OVER (PARTITION BY customer_id ORDER BY txn_date RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as balance_after_trans
+    FROM data_bank.customer_transactions)
+
+SELECT
+    customer_id,
+    ROUND(MIN(balance_after_trans), 2) as min,
+    ROUND(AVG(balance_after_trans), 2 ) as avg,
+    ROUND(MAX(balance_after_trans), 2) as max
+FROM balances
+GROUP BY customer_id
+
 -- Option 2: data is allocated on the average amount of money kept in the account in the previous 30 days
 
+-- Running customer balance column that includes the impact each transaction
+SELECT
+    *,
+    SUM(txn_amount) OVER (PARTITION BY customer_id ORDER BY txn_date RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as balance_after_trans
+FROM data_bank.customer_transactions
+
+-- Customer balance at the end of each month
+WITH balances as (
+    SELECT
+        customer_id,
+        DATE_PART('month', txn_date) as month,
+        SUM(
+            CASE WHEN txn_type = 'deposit' THEN txn_amount
+                ELSE -txn_amount END
+        ) as balance
+    FROM data_bank.customer_transactions
+    GROUP BY customer_id, month
+    ORDER BY customer_id, month)
+
+SELECT
+    customer_id,
+    month,
+    SUM(balance) OVER (PARTITION BY customer_id ORDER BY month RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as balance2
+FROM balances
+ORDER BY customer_id, month
+
+-- Minimum, average and maximum values of the running balance for each customer
+WITH balances as (
+    SELECT
+        *,
+        SUM(txn_amount) OVER (PARTITION BY customer_id ORDER BY txn_date RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as balance_after_trans
+    FROM data_bank.customer_transactions)
+
+SELECT
+    customer_id,
+    ROUND(MIN(balance_after_trans), 2) as min,
+    ROUND(AVG(balance_after_trans), 2 ) as avg,
+    ROUND(MAX(balance_after_trans), 2) as max
+FROM balances
+GROUP BY customer_id
+
 -- Option 3: data is updated real-time
+
+-- Running customer balance column that includes the impact each transaction
+SELECT
+    *,
+    SUM(txn_amount) OVER (PARTITION BY customer_id ORDER BY txn_date RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as balance_after_trans
+FROM data_bank.customer_transactions
+
+-- Customer balance at the end of each month
+WITH balances as (
+    SELECT
+        customer_id,
+        DATE_PART('month', txn_date) as month,
+        SUM(
+            CASE WHEN txn_type = 'deposit' THEN txn_amount
+                ELSE -txn_amount END
+        ) as balance
+    FROM data_bank.customer_transactions
+    GROUP BY customer_id, month
+    ORDER BY customer_id, month)
+
+SELECT
+    customer_id,
+    month,
+    SUM(balance) OVER (PARTITION BY customer_id ORDER BY month RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as balance2
+FROM balances
+ORDER BY customer_id, month
+
+-- Minimum, average and maximum values of the running balance for each customer
+WITH balances as (
+    SELECT
+        *,
+        SUM(txn_amount) OVER (PARTITION BY customer_id ORDER BY txn_date RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as balance_after_trans
+    FROM data_bank.customer_transactions)
+
+SELECT
+    customer_id,
+    ROUND(MIN(balance_after_trans), 2) as min,
+    ROUND(AVG(balance_after_trans), 2 ) as avg,
+    ROUND(MAX(balance_after_trans), 2) as max
+FROM balances
+GROUP BY customer_id
