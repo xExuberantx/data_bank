@@ -3,7 +3,8 @@ Step by step solution to 'Data with Danny's case study no. 4
 
 Database schema can be found under https://8weeksqlchallenge.com/case-study-4/
 
-![schema](https://github.com/xExuberantx/data_bank/assets/131042937/02398bcf-1cd6-4acd-bb78-0ab02faef4cd)
+![image](https://github.com/xExuberantx/data_bank/assets/131042937/29e5b511-4b39-4124-872e-ded2cd394831)
+
 
 ## A. Customer Nodes Exploration
 
@@ -99,6 +100,7 @@ FROM cte
 
 ### 3. For each month - how many Data Bank customers make more than 1 deposit and either 1 purchase or 1 withdrawal in a single month?
 Since the data is provided for ca. 4 months time we can simplify the query to just months
+# SUM CASE/IF!!!!!!!
 ```
 WITH deposits as (
     SELECT
