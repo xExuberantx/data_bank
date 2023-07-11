@@ -9666,13 +9666,12 @@ WITH account_data as (
     txn_date,
     SUM(CASE WHEN txn_type = 'deposit' THEN txn_amount
         ELSE -txn_amount END) OVER (PARTITION BY customer_id ORDER BY txn_date RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as balance,
-    RANK() OVER (PARTITION BY customer_id ORDER BY txn_date DESC) as rnk
+    RANK() OVER (PARTITION BY customer_id, DATE_PART('month', txn_date) ORDER BY txn_date DESC) as rnk
     FROM data_bank.customer_transactions)
-
+    
 SELECT
     DATE_PART('month', txn_date) as month,
     SUM(balance)
 FROM account_data
 WHERE rnk = 1
 GROUP BY month
-
