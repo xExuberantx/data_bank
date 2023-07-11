@@ -204,6 +204,61 @@ SELECT
 
 ## C. Data Allocation Challenge
 
+### Running customer balance column that includes the impact each transaction
+```
+SELECT
+    *,
+    SUM(CASE WHEN txn_type = 'deposit' THEN txn_amount
+        ELSE -txn_amount END) OVER (PARTITION BY customer_id ORDER BY txn_date RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as balance
+FROM data_bank.customer_transactions
+LIMIT 15
+```
+![image](screens/c_balance.PNG)
+
+### Customer balance at the end of each month
+```
+WITH balances as (
+    SELECT
+        customer_id,
+        DATE_PART('month', txn_date) as month,
+        SUM(
+            CASE WHEN txn_type = 'deposit' THEN txn_amount
+                ELSE -txn_amount END
+        ) as balance
+    FROM data_bank.customer_transactions
+    GROUP BY customer_id, month
+    ORDER BY customer_id, month)
+
+SELECT
+    customer_id,
+    month,
+    SUM(balance) OVER (PARTITION BY customer_id ORDER BY month RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as balance2
+FROM balances
+ORDER BY customer_id, month
+LIMIT 15
+```
+![image](screens/c_bal_eom.PNG)
+
+### Minimum, average and maximum values of the running balance for each customer
+```
+WITH balances as (
+    SELECT
+        *,
+        SUM(CASE WHEN txn_type = 'deposit' THEN txn_amount
+            ELSE -txn_amount END) OVER (PARTITION BY customer_id ORDER BY txn_date RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as balance
+    FROM data_bank.customer_transactions)
+
+SELECT
+    customer_id,
+    ROUND(MIN(balance), 2) as min,
+    ROUND(AVG(balance), 2 ) as avg,
+    ROUND(MAX(balance), 2) as max
+FROM balances
+GROUP BY customer_id
+LIMIT 15
+```
+![image](screens/c_summary.PNG)
+
 ### Option 1: data is allocated based off the amount of money at the end of the previous month
 
-**Running customer balance column that includes the impact each transaction**
+
