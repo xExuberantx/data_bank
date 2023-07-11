@@ -3,7 +3,7 @@ Step by step solution to 'Data with Danny's case study no. 4
 
 Database schema can be found under https://8weeksqlchallenge.com/case-study-4/
 
-![image](https://github.com/xExuberantx/data_bank/assets/131042937/29e5b511-4b39-4124-872e-ded2cd394831)
+![image](screens/schema.png)
 
 
 ## A. Customer Nodes Exploration
@@ -14,7 +14,7 @@ SELECT
     COUNT(DISTINCT node_id)
 FROM data_bank.customer_nodes;
 ```
-![image](https://github.com/xExuberantx/data_bank/assets/131042937/7ab7a59c-c186-45ac-a347-e9e6d6afde87)
+![image](screens/1.png)
 
 ### 2. What is the number of nodes per region?
 ```
@@ -27,7 +27,7 @@ USING(region_id)
 GROUP BY region_name
 ORDER BY nodes DESC;
 ```
-![image](https://github.com/xExuberantx/data_bank/assets/131042937/5411a803-9bbd-4088-87bb-53a644a56ea8)
+![image](screens/2.png)
 
 
 ### 3. How many customers are allocated to each region?
@@ -41,7 +41,7 @@ USING(region_id)
 GROUP BY region_name
 ORDER BY customers DESC;
 ```
-![image](https://github.com/xExuberantx/data_bank/assets/131042937/1d43a118-3b5a-4598-bf75-5bd054ca6f5d)
+![image](screens/3.png)
 
 ### 4. How many days on average are customers reallocated to a different node?
 ```
@@ -49,7 +49,7 @@ SELECT
     ROUND(AVG(end_date - start_date)) AS rel_time
 FROM data_bank.customer_nodes
 ```
-![image](https://github.com/xExuberantx/data_bank/assets/131042937/1628fee2-e85d-496d-b4a3-0dcba8eeb5fa)
+![image](screens/4.png)
 
 ### 5. What is the median, 80th and 95th percentile for this same reallocation days metric for each region?
 ```
@@ -63,7 +63,7 @@ JOIN data_bank.regions
 USING(region_id)
 GROUP BY region_name
 ```
-![image](https://github.com/xExuberantx/data_bank/assets/131042937/9d087ba2-61bc-4c06-9986-921f351032d9)
+![image](screens/5.png)
 
 ## B. Customer Transactions
 
@@ -78,7 +78,7 @@ FROM data_bank.customer_transactions
 GROUP BY txn_type
 ORDER BY count DESC
 ```
-![image](https://github.com/xExuberantx/data_bank/assets/131042937/7426085b-f6e7-4e15-8e5b-ab5ac30678e8)
+![image](screens/b1.png)
 
 ### 2. What is the average total historical deposit counts and amounts for all customers?
 ```
@@ -96,55 +96,32 @@ SELECT
     ROUND(AVG(avg_am_per_cust), 2) as avg_amount
 FROM cte
 ```
-![image](https://github.com/xExuberantx/data_bank/assets/131042937/a3c84e73-1265-4d40-adc4-50ffa5018d49)
+![image](screens/b2.png)
 
 ### 3. For each month - how many Data Bank customers make more than 1 deposit and either 1 purchase or 1 withdrawal in a single month?
 Since the data is provided for ca. 4 months time we can simplify the query to just months
-# SUM CASE/IF!!!!!!!
+
 ```
-WITH deposits as (
+WITH txns as (
     SELECT
         DATE_PART('month', txn_date) as month,
         customer_id,
-        COUNT(customer_id) as depo_cnt
+        SUM(CASE WHEN txn_type = 'deposit' THEN 1 ELSE 0 END) as deposits,
+        SUM(CASE WHEN txn_type = 'purchase' THEN 1 ELSE 0 END) as purchases,
+        SUM(CASE WHEN txn_type = 'withdrawal' THEN 1 ELSE 0 END) as withdrawals
     FROM data_bank.customer_transactions
-    WHERE txn_type = 'deposit'
     GROUP BY month, customer_id
-    ORDER BY month DESC),
-    purchases as (
-    SELECT
-        DATE_PART('month', txn_date) as month,
-        customer_id,
-        COUNT(customer_id) as purch_cnt
-    FROM data_bank.customer_transactions
-    WHERE txn_type = 'purchase'
-    GROUP BY month, customer_id
-    ORDER BY month DESC
-    ),
-    withdrawals as (
-    SELECT
-        DATE_PART('month', txn_date) as month,
-        customer_id,
-        COUNT(customer_id) withd_cnt
-    FROM data_bank.customer_transactions
-    WHERE txn_type = 'withdrawal'
-    GROUP BY month, customer_id
-    ORDER BY month DESC
-    )
+    ORDER BY month, customer_id
+)
 SELECT
     month,
     COUNT(*) as cnt
-FROM deposits
-FULL JOIN purchases
-USING(month, customer_id)
-FULL JOIN withdrawals
-USING(month, customer_id)
-WHERE depo_cnt > 1
-  AND (purch_cnt = 1 OR withd_cnt = 1)
+FROM txns
+WHERE deposits > 1 AND (purchases = 1 OR withdrawals = 1)
 GROUP BY month
 ORDER BY cnt DESC
 ```
-![image](https://github.com/xExuberantx/data_bank/assets/131042937/a546e3d9-bfc5-43ea-b8fd-2d5fb28113a8)
+![image](screens/b3.png)
 
 ### 4. What is the closing balance for each customer at the end of the month?
 **Regarding each month individually**
@@ -161,7 +138,7 @@ GROUP BY customer_id, month
 ORDER BY customer_id, month
 LIMIT 15
 ```
-![image](https://github.com/xExuberantx/data_bank/assets/131042937/6a85c8fc-ecad-425e-b5c9-51d6cff96b81)
+![image](screens/b4.png)
 
 **Regarding previous month's balance**
 ```
@@ -184,7 +161,7 @@ SELECT
 FROM balances
 ORDER BY customer_id, month
 ```
-![image](https://github.com/xExuberantx/data_bank/assets/131042937/585228b5-1c1f-4ace-aaad-43474982ad87)
+![image](screens/b4b.png)
 
 ### 5. What is the percentage of customers who increase their closing balance by more than 5%?
 ```
@@ -223,7 +200,7 @@ WITH balances as (
 SELECT
     ROUND((SELECT COUNT(*) FROM increase WHERE perc_incr > 5)::NUMERIC/(SELECT COUNT(*) FROM increase)*100, 2) as cust_with_incr
 ```
-![image](https://github.com/xExuberantx/data_bank/assets/131042937/bd08836f-ff0f-4fea-8a2c-ef3f2005f03a)
+![image](screens/b5.png)
 
 ## C. Data Allocation Challenge
 
