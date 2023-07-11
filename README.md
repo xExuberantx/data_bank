@@ -3,7 +3,7 @@ Step by step solution to 'Data with Danny's case study no. 4
 
 Database schema can be found under https://8weeksqlchallenge.com/case-study-4/
 
-![schema](https://github.com/xExuberantx/data_bank/assets/131042937/c81412a7-451b-443f-9a31-dca5d3141e9c)
+![image](https://github.com/xExuberantx/data_bank/assets/131042937/29e5b511-4b39-4124-872e-ded2cd394831)
 
 
 ## A. Customer Nodes Exploration
