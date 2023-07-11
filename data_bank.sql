@@ -9625,9 +9625,54 @@ GROUP BY customer_id
 LIMIT 15
 
 -- Option 1: data is allocated based off the amount of money at the end of the previous month
+WITH balances as (
+    SELECT
+        customer_id,
+        DATE_PART('month', txn_date) as month,
+        SUM(
+            CASE WHEN txn_type = 'deposit' THEN txn_amount
+                ELSE -txn_amount END
+        ) as balance
+    FROM data_bank.customer_transactions
+    GROUP BY customer_id, month
+    ORDER BY customer_id, month)
 
+SELECT
+    month,
+    SUM(balance)
+FROM balances
+GROUP BY month
+ORDER BY month
 
 
 -- Option 2: data is allocated on the average amount of money kept in the account in the previous 30 days
+WITH account_data as (
+    SELECT
+    *,
+    SUM(CASE WHEN txn_type = 'deposit' THEN txn_amount
+        ELSE -txn_amount END) OVER (PARTITION BY customer_id ORDER BY txn_date RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as balance
+    FROM data_bank.customer_transactions)
+
+SELECT
+    *,
+    AVG(balance) OVER (PARTITION BY customer_id ORDER BY txn_date RANGE BETWEEN INTERVAL '30 days' PRECEDING AND CURRENT ROW) as avg
+FROM account_data
+
 
 -- Option 3: data is updated real-time
+WITH account_data as (
+    SELECT
+    customer_id,
+    txn_date,
+    SUM(CASE WHEN txn_type = 'deposit' THEN txn_amount
+        ELSE -txn_amount END) OVER (PARTITION BY customer_id ORDER BY txn_date RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as balance,
+    RANK() OVER (PARTITION BY customer_id ORDER BY txn_date DESC) as rnk
+    FROM data_bank.customer_transactions)
+
+SELECT
+    DATE_PART('month', txn_date) as month,
+    SUM(balance)
+FROM account_data
+WHERE rnk = 1
+GROUP BY month
+
