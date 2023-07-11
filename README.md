@@ -100,47 +100,24 @@ FROM cte
 
 ### 3. For each month - how many Data Bank customers make more than 1 deposit and either 1 purchase or 1 withdrawal in a single month?
 Since the data is provided for ca. 4 months time we can simplify the query to just months
-# SUM CASE/IF!!!!!!!
+
 ```
-WITH deposits as (
+WITH txns as (
     SELECT
         DATE_PART('month', txn_date) as month,
         customer_id,
-        COUNT(customer_id) as depo_cnt
+        SUM(CASE WHEN txn_type = 'deposit' THEN 1 ELSE 0 END) as deposits,
+        SUM(CASE WHEN txn_type = 'purchase' THEN 1 ELSE 0 END) as purchases,
+        SUM(CASE WHEN txn_type = 'withdrawal' THEN 1 ELSE 0 END) as withdrawals
     FROM data_bank.customer_transactions
-    WHERE txn_type = 'deposit'
     GROUP BY month, customer_id
-    ORDER BY month DESC),
-    purchases as (
-    SELECT
-        DATE_PART('month', txn_date) as month,
-        customer_id,
-        COUNT(customer_id) as purch_cnt
-    FROM data_bank.customer_transactions
-    WHERE txn_type = 'purchase'
-    GROUP BY month, customer_id
-    ORDER BY month DESC
-    ),
-    withdrawals as (
-    SELECT
-        DATE_PART('month', txn_date) as month,
-        customer_id,
-        COUNT(customer_id) withd_cnt
-    FROM data_bank.customer_transactions
-    WHERE txn_type = 'withdrawal'
-    GROUP BY month, customer_id
-    ORDER BY month DESC
-    )
+    ORDER BY month, customer_id
+)
 SELECT
     month,
     COUNT(*) as cnt
-FROM deposits
-FULL JOIN purchases
-USING(month, customer_id)
-FULL JOIN withdrawals
-USING(month, customer_id)
-WHERE depo_cnt > 1
-  AND (purch_cnt = 1 OR withd_cnt = 1)
+FROM txns
+WHERE deposits > 1 AND (purchases = 1 OR withdrawals = 1)
 GROUP BY month
 ORDER BY cnt DESC
 ```
